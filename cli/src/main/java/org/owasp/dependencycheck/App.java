@@ -42,6 +42,16 @@ import org.owasp.dependencycheck.exception.ReportException;
 import org.owasp.dependencycheck.utils.InvalidSettingException;
 import org.slf4j.impl.StaticLoggerBinder;
 
+import org.owasp.dependencycheck.agent.DependencyCheckScanAgent;
+import org.owasp.dependencycheck.dependency.EvidenceType;
+import org.owasp.dependencycheck.dependency.Confidence;
+import org.owasp.dependencycheck.reporting.ReportGenerator;
+import org.owasp.dependencycheck.utils.FileUtils;
+import org.owasp.dependencycheck.exception.ScanAgentException;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.util.Arrays;
+
 /**
  * The command line interface for the DependencyCheck application.
  *
@@ -58,15 +68,84 @@ public class App {
      */
     private Settings settings = null;
 
+	public static List<List<String>> readcsv(String filename) {
+		List<List<String>> data = new ArrayList<>();
+        BufferedReader br = null;
+        String line = "";
+        String csvSeperator = ",";
+
+        try {
+            br = new BufferedReader(new FileReader(filename));
+            while ((line = br.readLine()) != null) {
+                data.add(Arrays.asList(line.split(csvSeperator)));
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (br != null) {
+                try {
+                    br.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+		return data;
+	}
+
     /**
      * The main method for the application.
      *
      * @param args the command line arguments
      */
     public static void main(String[] args) {
+		// MY CODE
+
+		if (args.length < 1) {
+			LOGGER.error("missing argument");
+			System.exit(1);
+		}
+		String inputFile = args[0];
+		List<List<String>> data = readcsv(inputFile);
+
+		try {
+			List<Dependency> dependencies = new ArrayList<Dependency>();
+
+
+			for (List<String> d : data) {
+
+				System.out.println("adding dependency: " + d);
+				String product = d.get(0);
+				String version = d.get(1);
+				String vendor = d.get(2);
+
+				Dependency dependency = new Dependency(new File(FileUtils.getBitBucket()));
+				dependency.addEvidence(EvidenceType.PRODUCT, "my-datasource", "name", product, Confidence.HIGH);
+				dependency.addEvidence(EvidenceType.VERSION, "my-datasource", "version", version, Confidence.HIGH);
+				dependency.addEvidence(EvidenceType.VENDOR, "my-datasource", "vendor", vendor, Confidence.HIGH);
+				dependencies.add(dependency);
+			}
+			System.out.println("deps: " + dependencies);
+
+
+			DependencyCheckScanAgent scan = new DependencyCheckScanAgent();
+			scan.setDependencies(dependencies);
+			scan.setReportFormat(ReportGenerator.Format.ALL);
+			scan.setReportOutputDirectory(System.getProperty("user.home"));
+			scan.execute();
+		} catch (ScanAgentException ex) {
+			LOGGER.error("oops error");
+			LOGGER.error("" + ex);
+
+		}
+
+		// END MY CODE
         int exitCode = 0;
-        final App app = new App();
-        exitCode = app.run(args);
+        // final App app = new App();
+        // exitCode = app.run(args);
         LOGGER.debug("Exit code: {}", exitCode);
         System.exit(exitCode);
     }

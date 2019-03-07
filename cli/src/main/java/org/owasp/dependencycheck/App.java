@@ -117,19 +117,16 @@ public class App {
 
 			for (List<String> d : data) {
 
-				System.out.println("adding dependency: " + d);
 				String product = d.get(0);
 				String version = d.get(1);
 				String vendor = d.get(2);
 
-				Dependency dependency = new Dependency(new File(FileUtils.getBitBucket()));
+				Dependency dependency = new Dependency(new File(FileUtils.getBitBucket()), true);
 				dependency.addEvidence(EvidenceType.PRODUCT, "my-datasource", "name", product, Confidence.HIGH);
 				dependency.addEvidence(EvidenceType.VERSION, "my-datasource", "version", version, Confidence.HIGH);
 				dependency.addEvidence(EvidenceType.VENDOR, "my-datasource", "vendor", vendor, Confidence.HIGH);
 				dependencies.add(dependency);
 			}
-			System.out.println("deps: " + dependencies);
-
 
 			DependencyCheckScanAgent scan = new DependencyCheckScanAgent();
 			scan.setDependencies(dependencies);
